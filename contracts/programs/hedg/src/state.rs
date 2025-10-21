@@ -30,3 +30,19 @@ pub struct BondingCurve {
 impl BondingCurve {
     pub const LEN: usize = 8 + 32 + 8 + 8 + 8 + 8 + 1 + 32 + 1;
 }
+
+#[account]
+pub struct BuyerRecord {
+    pub buyer: Pubkey,
+    pub token_mint: Pubkey,
+    pub total_bought: u64,
+    pub total_sol_spent: u64,
+    pub avg_price: u64,
+    pub refund_claimed: bool,
+    pub first_buy_at: i64,
+    pub bump: u8,
+}
+
+impl BuyerRecord {
+    pub const LEN: usize = 8 + 32 + 32 + 8 + 8 + 8 + 1 + 8 + 1;
+}
