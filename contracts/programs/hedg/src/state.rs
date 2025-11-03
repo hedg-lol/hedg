@@ -1,5 +1,7 @@
 //! Account state definitions for the HEDG protocol.
-//! Includes escrow vaults, bonding curves, and buyer records.
+//!
+//! Each account type corresponds to a PDA with deterministic
+//! seed derivation. See docs/pda-seeds.md for details.
 
 use anchor_lang::prelude::*;
 
@@ -16,4 +18,20 @@ pub struct EscrowVault {
 
 impl EscrowVault {
     pub const LEN: usize = 8 + 32 + 32 + 8 + 8 + 1 + 1 + 1;
+}
+
+#[account]
+pub struct BondingCurve {
+    pub token_mint: Pubkey,
+    pub current_supply: u64,
+    pub base_price: u64,
+    pub slope: u64,
+    pub reserve_balance: u64,
+    pub graduated: bool,
+    pub deployer: Pubkey,
+    pub bump: u8,
+}
+
+impl BondingCurve {
+    pub const LEN: usize = 8 + 32 + 8 + 8 + 8 + 8 + 1 + 32 + 1;
 }
