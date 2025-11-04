@@ -25,6 +25,24 @@ pub struct CreateEscrow<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct ReleaseEscrow<'info> {
+    #[account(
+        mut,
+        constraint = deployer.key() == escrow_vault.deployer @ HedgError::Unauthorized
+    )]
+    pub deployer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [ESCROW_SEED, deployer.key().as_ref(), escrow_vault.token_mint.as_ref()],
+        bump = escrow_vault.bump,
+    )]
+    pub escrow_vault: Account<'info, EscrowVault>,
+
+    pub system_program: Program<'info, System>,
+}
+
 pub fn create_escrow(ctx: Context<CreateEscrow>, collateral_amount: u64) -> Result<()> {
     require!(
         collateral_amount >= MIN_COLLATERAL,
@@ -53,5 +71,28 @@ pub fn create_escrow(ctx: Context<CreateEscrow>, collateral_amount: u64) -> Resu
     escrow.bump = ctx.bumps.escrow_vault;
 
     msg!("Escrow created: {} lamports collateral", collateral_amount);
+    Ok(())
+}
+
+pub fn release_escrow(ctx: Context<ReleaseEscrow>) -> Result<()> {
+    let escrow = &mut ctx.accounts.escrow_vault;
+
+    require!(!escrow.released, HedgError::EscrowAlreadyReleased);
+
+    let now = Clock::get()?.unix_timestamp;
+    let elapsed = now.checked_sub(escrow.created_at).ok_or(HedgError::MathOverflow)?;
+    require!(elapsed >= SAFE_PERIOD, HedgError::SafePeriodActive);
+
+    // Transfer collateral back to deployer
+    let escrow_info = escrow.to_account_info();
+    let deployer_info = ctx.accounts.deployer.to_account_info();
+    let amount = escrow.collateral_amount;
+
+    **escrow_info.try_borrow_mut_lamports()? -= amount;
+    **deployer_info.try_borrow_mut_lamports()? += amount;
+
+    escrow.released = true;
+
+    msg!("Escrow released: {} lamports returned to deployer", amount);
     Ok(())
 }
