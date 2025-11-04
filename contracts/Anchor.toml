@@ -4,6 +4,10 @@
 seeds = false
 skip-lint = false
 
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+
 [programs.devnet]
 hedg = "CcyByKGzRDK17icyNGAgdUN4q7WzbL1BPi4BNzqytyMP"
 
