@@ -25,6 +25,21 @@ pub struct InitBondingCurve<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct BuyTokens<'info> {
+    #[account(mut)]
+    pub buyer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [CURVE_SEED, bonding_curve.token_mint.as_ref()],
+        bump = bonding_curve.bump,
+    )]
+    pub bonding_curve: Account<'info, BondingCurve>,
+
+    pub system_program: Program<'info, System>,
+}
+
 pub fn init_bonding_curve(
     ctx: Context<InitBondingCurve>,
     base_price: u64,
@@ -41,5 +56,60 @@ pub fn init_bonding_curve(
     curve.bump = ctx.bumps.bonding_curve;
 
     msg!("Bonding curve initialized: base_price={}, slope={}", base_price, slope);
+    Ok(())
+}
+
+/// Calculate the current price based on supply: price = base_price + slope * supply
+fn calculate_price(base_price: u64, slope: u64, supply: u64) -> Result<u64> {
+    let price_increase = slope.checked_mul(supply).ok_or(HedgError::MathOverflow)?;
+    let price = base_price.checked_add(price_increase).ok_or(HedgError::MathOverflow)?;
+    Ok(price)
+}
+
+pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
+    let curve = &mut ctx.accounts.bonding_curve;
+
+    require!(!curve.graduated, HedgError::AlreadyGraduated);
+    require!(sol_amount > 0, HedgError::InsufficientFunds);
+
+    let fee = sol_amount
+        .checked_mul(TRADE_FEE_BPS)
+        .ok_or(HedgError::MathOverflow)?
+        .checked_div(10_000)
+        .ok_or(HedgError::MathOverflow)?;
+
+    let net_amount = sol_amount
+        .checked_sub(fee)
+        .ok_or(HedgError::MathOverflow)?;
+
+    let current_price = calculate_price(curve.base_price, curve.slope, curve.current_supply)?;
+    require!(current_price > 0, HedgError::InvalidPrice);
+
+    let tokens_to_mint = net_amount
+        .checked_mul(1_000_000_000)
+        .ok_or(HedgError::MathOverflow)?
+        .checked_div(current_price)
+        .ok_or(HedgError::MathOverflow)?;
+
+    // Transfer SOL from buyer to bonding curve
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.buyer.to_account_info(),
+                to: ctx.accounts.bonding_curve.to_account_info(),
+            },
+        ),
+        sol_amount,
+    )?;
+
+    curve.current_supply = curve.current_supply
+        .checked_add(tokens_to_mint)
+        .ok_or(HedgError::MathOverflow)?;
+    curve.reserve_balance = curve.reserve_balance
+        .checked_add(net_amount)
+        .ok_or(HedgError::MathOverflow)?;
+
+    msg!("Bought {} tokens for {} lamports (fee: {})", tokens_to_mint, sol_amount, fee);
     Ok(())
 }
