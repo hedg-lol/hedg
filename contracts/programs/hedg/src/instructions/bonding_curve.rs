@@ -40,6 +40,21 @@ pub struct BuyTokens<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct SellTokens<'info> {
+    #[account(mut)]
+    pub seller: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [CURVE_SEED, bonding_curve.token_mint.as_ref()],
+        bump = bonding_curve.bump,
+    )]
+    pub bonding_curve: Account<'info, BondingCurve>,
+
+    pub system_program: Program<'info, System>,
+}
+
 pub fn init_bonding_curve(
     ctx: Context<InitBondingCurve>,
     base_price: u64,
@@ -111,5 +126,57 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
         .ok_or(HedgError::MathOverflow)?;
 
     msg!("Bought {} tokens for {} lamports (fee: {})", tokens_to_mint, sol_amount, fee);
+    Ok(())
+}
+
+pub fn sell_tokens(ctx: Context<SellTokens>, token_amount: u64) -> Result<()> {
+    let curve = &mut ctx.accounts.bonding_curve;
+
+    require!(!curve.graduated, HedgError::AlreadyGraduated);
+    require!(token_amount > 0, HedgError::InsufficientTokens);
+    require!(
+        curve.current_supply >= token_amount,
+        HedgError::InsufficientTokens
+    );
+
+    let current_price = calculate_price(curve.base_price, curve.slope, curve.current_supply)?;
+    require!(current_price > 0, HedgError::InvalidPrice);
+
+    let gross_sol = token_amount
+        .checked_mul(current_price)
+        .ok_or(HedgError::MathOverflow)?
+        .checked_div(1_000_000_000)
+        .ok_or(HedgError::MathOverflow)?;
+
+    let fee = gross_sol
+        .checked_mul(TRADE_FEE_BPS)
+        .ok_or(HedgError::MathOverflow)?
+        .checked_div(10_000)
+        .ok_or(HedgError::MathOverflow)?;
+
+    let net_sol = gross_sol
+        .checked_sub(fee)
+        .ok_or(HedgError::MathOverflow)?;
+
+    require!(
+        curve.reserve_balance >= net_sol,
+        HedgError::InsufficientFunds
+    );
+
+    // Transfer SOL from bonding curve to seller
+    let curve_info = curve.to_account_info();
+    let seller_info = ctx.accounts.seller.to_account_info();
+
+    **curve_info.try_borrow_mut_lamports()? -= net_sol;
+    **seller_info.try_borrow_mut_lamports()? += net_sol;
+
+    curve.current_supply = curve.current_supply
+        .checked_sub(token_amount)
+        .ok_or(HedgError::MathOverflow)?;
+    curve.reserve_balance = curve.reserve_balance
+        .checked_sub(net_sol)
+        .ok_or(HedgError::MathOverflow)?;
+
+    msg!("Sold {} tokens for {} lamports (fee: {})", token_amount, net_sol, fee);
     Ok(())
 }
