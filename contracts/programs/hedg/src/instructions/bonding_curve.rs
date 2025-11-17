@@ -74,11 +74,27 @@ pub fn init_bonding_curve(
     Ok(())
 }
 
-/// Calculate the current price based on supply: price = base_price + slope * supply
+/// Calculate the current price on the linear bonding curve.
+///
+/// The price model follows: price = base_price + slope * current_supply
+/// All arithmetic uses checked operations to prevent overflow in
+/// large-supply scenarios.
 fn calculate_price(base_price: u64, slope: u64, supply: u64) -> Result<u64> {
     let price_increase = slope.checked_mul(supply).ok_or(HedgError::MathOverflow)?;
     let price = base_price.checked_add(price_increase).ok_or(HedgError::MathOverflow)?;
     Ok(price)
+}
+
+/// Calculate trade fee from gross amount.
+///
+/// fee = amount * TRADE_FEE_BPS / 10_000
+fn calculate_trade_fee(amount: u64) -> Result<u64> {
+    let fee = amount
+        .checked_mul(TRADE_FEE_BPS)
+        .ok_or(HedgError::MathOverflow)?
+        .checked_div(10_000)
+        .ok_or(HedgError::MathOverflow)?;
+    Ok(fee)
 }
 
 pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
@@ -87,11 +103,7 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
     require!(!curve.graduated, HedgError::AlreadyGraduated);
     require!(sol_amount > 0, HedgError::InsufficientFunds);
 
-    let fee = sol_amount
-        .checked_mul(TRADE_FEE_BPS)
-        .ok_or(HedgError::MathOverflow)?
-        .checked_div(10_000)
-        .ok_or(HedgError::MathOverflow)?;
+    let fee = calculate_trade_fee(sol_amount)?;
 
     let net_amount = sol_amount
         .checked_sub(fee)
@@ -106,7 +118,7 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
         .checked_div(current_price)
         .ok_or(HedgError::MathOverflow)?;
 
-    // Transfer SOL from buyer to bonding curve
+    // Transfer SOL from buyer to bonding curve PDA
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -148,11 +160,7 @@ pub fn sell_tokens(ctx: Context<SellTokens>, token_amount: u64) -> Result<()> {
         .checked_div(1_000_000_000)
         .ok_or(HedgError::MathOverflow)?;
 
-    let fee = gross_sol
-        .checked_mul(TRADE_FEE_BPS)
-        .ok_or(HedgError::MathOverflow)?
-        .checked_div(10_000)
-        .ok_or(HedgError::MathOverflow)?;
+    let fee = calculate_trade_fee(gross_sol)?;
 
     let net_sol = gross_sol
         .checked_sub(fee)
@@ -163,7 +171,7 @@ pub fn sell_tokens(ctx: Context<SellTokens>, token_amount: u64) -> Result<()> {
         HedgError::InsufficientFunds
     );
 
-    // Transfer SOL from bonding curve to seller
+    // Transfer SOL from bonding curve PDA to seller
     let curve_info = curve.to_account_info();
     let seller_info = ctx.accounts.seller.to_account_info();
 
