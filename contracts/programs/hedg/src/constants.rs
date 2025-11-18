@@ -1,3 +1,8 @@
+//! Protocol constants and configuration values.
+//!
+//! These values are compiled into the program binary and
+//! cannot be changed without a program upgrade.
+
 pub const MIN_COLLATERAL: u64 = 1_000_000_000;
 pub const SAFE_PERIOD: i64 = 86_400;
 pub const PROTOCOL_FEE_BPS: u64 = 50;
