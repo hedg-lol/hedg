@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::BuyerRecord;
+use crate::state::{BuyerRecord, EscrowVault};
 use crate::constants::*;
 use crate::errors::HedgError;
 
@@ -18,6 +18,39 @@ pub struct RecordBuyer<'info> {
         space = BuyerRecord::LEN,
         seeds = [RECORD_SEED, buyer.key().as_ref(), token_mint.key().as_ref()],
         bump,
+    )]
+    pub buyer_record: Account<'info, BuyerRecord>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ProcessRefund<'info> {
+    /// Protocol authority that triggers refunds
+    pub authority: Signer<'info>,
+
+    /// CHECK: Buyer wallet receiving the refund
+    #[account(
+        mut,
+        constraint = buyer.key() == buyer_record.buyer @ HedgError::NoBuyerRecord
+    )]
+    pub buyer: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            ESCROW_SEED,
+            escrow_vault.deployer.as_ref(),
+            escrow_vault.token_mint.as_ref()
+        ],
+        bump = escrow_vault.bump,
+    )]
+    pub escrow_vault: Account<'info, EscrowVault>,
+
+    #[account(
+        mut,
+        seeds = [RECORD_SEED, buyer.key().as_ref(), escrow_vault.token_mint.as_ref()],
+        bump = buyer_record.bump,
     )]
     pub buyer_record: Account<'info, BuyerRecord>,
 
@@ -59,5 +92,34 @@ pub fn record_buyer(ctx: Context<RecordBuyer>, amount: u64, price: u64) -> Resul
     }
 
     msg!("Buyer record updated: {} tokens, {} SOL spent", record.total_bought, record.total_sol_spent);
+    Ok(())
+}
+
+pub fn process_refund(ctx: Context<ProcessRefund>) -> Result<()> {
+    let escrow = &mut ctx.accounts.escrow_vault;
+    let record = &mut ctx.accounts.buyer_record;
+
+    require!(escrow.rugged, HedgError::SafePeriodExpired);
+    require!(!record.refund_claimed, HedgError::RefundAlreadyProcessed);
+
+    // Pro-rata refund: buyer gets share of collateral proportional to SOL spent
+    let refund_amount = record.total_sol_spent
+        .min(escrow.collateral_amount);
+
+    require!(refund_amount > 0, HedgError::NoBuyerRecord);
+
+    // Transfer refund from escrow to buyer
+    let escrow_info = escrow.to_account_info();
+    let buyer_info = ctx.accounts.buyer.to_account_info();
+
+    **escrow_info.try_borrow_mut_lamports()? -= refund_amount;
+    **buyer_info.try_borrow_mut_lamports()? += refund_amount;
+
+    escrow.collateral_amount = escrow.collateral_amount
+        .checked_sub(refund_amount)
+        .ok_or(HedgError::MathOverflow)?;
+    record.refund_claimed = true;
+
+    msg!("Refund processed: {} lamports to buyer", refund_amount);
     Ok(())
 }
