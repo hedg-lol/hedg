@@ -1,3 +1,8 @@
+//! HEDG Protocol - Responsible Token Launchpad
+//!
+//! This program implements deployer collateral escrow,
+//! bonding curve AMM, and pro-rata refund distribution.
+
 use anchor_lang::prelude::*;
 
 pub mod state;
