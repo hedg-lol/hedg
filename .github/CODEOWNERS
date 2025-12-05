@@ -1,0 +1,11 @@
+# Global owners
+* @hedg-lol
+
+# Contract code requires review
+contracts/ @hedg-lol
+
+# SDK code
+sdk/ @hedg-lol
+
+# CI/CD
+.github/ @hedg-lol
