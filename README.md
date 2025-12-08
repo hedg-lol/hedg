@@ -24,6 +24,32 @@ The protocol consists of three layers:
 - Web Dashboard for browsing launches and checking deployer reputation
 - TypeScript SDK for programmatic access
 
+## Bonding Curve Model
+
+HEDG uses a linear bonding curve for token pricing:
+
+```
+price(s) = base_price + slope * current_supply
+```
+
+Where:
+- `base_price` is the initial token price in lamports
+- `slope` determines how quickly the price increases per token sold
+- `current_supply` is the total number of tokens currently in circulation
+
+The curve ensures transparent, deterministic pricing where each successive token costs slightly more than the last.
+
+## Reputation Scoring
+
+Deployer reputation is calculated using on-chain history:
+
+- **Launch Count**: total tokens deployed
+- **Rug Count**: number of launches flagged as rugs
+- **Success Rate**: percentage of launches where escrow was cleanly released
+- **Collateral History**: average and total collateral deposited
+
+The score is rule-based (not ML) and updated in real-time as on-chain events occur.
+
 ## Status
 
 Under active development. See the [CHANGELOG](CHANGELOG.md) for the latest updates.
