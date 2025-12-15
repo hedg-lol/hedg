@@ -1,3 +1,5 @@
+//! Bonding curve instructions: init, buy, and sell.
+
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
