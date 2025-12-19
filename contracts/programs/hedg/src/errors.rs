@@ -1,4 +1,6 @@
 //! Custom error types for the HEDG protocol.
+//!
+//! Error codes start at 6000 following Anchor convention.
 
 use anchor_lang::prelude::*;
 
