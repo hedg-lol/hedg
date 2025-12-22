@@ -82,4 +82,56 @@ describe("hedg", () => {
       expect(err.error.errorCode.code).to.equal("SafePeriodActive");
     }
   });
+
+  describe("bonding curve", () => {
+    const curveMint = Keypair.generate();
+
+    it("initializes a bonding curve", async () => {
+      const basePrice = new anchor.BN(1_000_000); // 0.001 SOL
+      const slope = new anchor.BN(100); // 100 lamports per token
+
+      const [bondingCurve] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("curve"), curveMint.publicKey.toBuffer()],
+        program.programId
+      );
+
+      await program.methods
+        .initBondingCurve(basePrice, slope)
+        .accounts({
+          deployer: deployer.publicKey,
+          tokenMint: curveMint.publicKey,
+          bondingCurve,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      const curve = await program.account.bondingCurve.fetch(bondingCurve);
+      expect(curve.basePrice.toNumber()).to.equal(1_000_000);
+      expect(curve.slope.toNumber()).to.equal(100);
+      expect(curve.currentSupply.toNumber()).to.equal(0);
+      expect(curve.graduated).to.be.false;
+    });
+
+    it("allows buying tokens on the bonding curve", async () => {
+      const solAmount = new anchor.BN(LAMPORTS_PER_SOL / 10); // 0.1 SOL
+
+      const [bondingCurve] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("curve"), curveMint.publicKey.toBuffer()],
+        program.programId
+      );
+
+      await program.methods
+        .buyTokens(solAmount)
+        .accounts({
+          buyer: deployer.publicKey,
+          bondingCurve,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      const curve = await program.account.bondingCurve.fetch(bondingCurve);
+      expect(curve.currentSupply.toNumber()).to.be.greaterThan(0);
+      expect(curve.reserveBalance.toNumber()).to.be.greaterThan(0);
+    });
+  });
 });
