@@ -1,3 +1,5 @@
+//! Refund instructions: record buyer and process refund.
+
 use anchor_lang::prelude::*;
 
 use crate::state::{BuyerRecord, EscrowVault};
