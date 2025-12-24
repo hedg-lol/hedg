@@ -1,4 +1,7 @@
 //! Refund instructions: record buyer and process refund.
+//!
+//! The refund system distributes escrow collateral pro-rata
+//! to affected buyers when a rug pull is detected.
 
 use anchor_lang::prelude::*;
 
