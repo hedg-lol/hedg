@@ -1,5 +1,3 @@
-//! Escrow vault instructions: create and release.
-
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -83,6 +81,7 @@ pub fn release_escrow(ctx: Context<ReleaseEscrow>) -> Result<()> {
 
     let now = Clock::get()?.unix_timestamp;
     let elapsed = now.checked_sub(escrow.created_at).ok_or(HedgError::MathOverflow)?;
+    // Ensure elapsed time is non-negative (clock can sometimes drift)
     require!(elapsed >= SAFE_PERIOD, HedgError::SafePeriodActive);
 
     // Transfer collateral back to deployer
