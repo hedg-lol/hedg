@@ -6,7 +6,6 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
-    "paths": { "@hedg/*": ["./src/*"] },
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
