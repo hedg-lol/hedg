@@ -1,4 +1,7 @@
 //! Protocol constants and configuration values.
+//!
+//! Trade fee is split 50/50 between deployer and treasury.
+//! Protocol fee is a flat 0.5% on all trades.
 
 pub const MIN_COLLATERAL: u64 = 1_000_000_000;
 pub const SAFE_PERIOD: i64 = 86_400;
@@ -8,3 +11,5 @@ pub const DEPLOY_FEE: u64 = 20_000_000;
 pub const ESCROW_SEED: &[u8] = b"escrow";
 pub const CURVE_SEED: &[u8] = b"curve";
 pub const RECORD_SEED: &[u8] = b"record";
+
+// PDA bumps are stored in accounts to avoid re-derivation costs
