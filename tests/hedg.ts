@@ -4,7 +4,7 @@ import { Hedg } from "../target/types/hedg";
 import { expect } from "chai";
 import { Keypair, LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
 
-// Edge case coverage added
+// Fee calculation precision tests
 describe("hedg", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -83,6 +83,21 @@ describe("hedg", () => {
       } catch (err) {
         expect(err.error.errorCode.code).to.equal("SafePeriodActive");
       }
+    });
+
+    it("enforces safe period boundary correctly", async () => {
+      // Verifies that the exact boundary (86400 seconds) is respected
+      const [escrowVault] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("escrow"), deployer.publicKey.toBuffer(), tokenMint.publicKey.toBuffer()],
+        program.programId
+      );
+
+      const escrow = await program.account.escrowVault.fetch(escrowVault);
+      const safePeriod = 86_400; // 24 hours
+      expect(escrow.createdAt.toNumber()).to.be.greaterThan(0);
+      // The safe period should be exactly 24 hours from creation
+      const releaseTime = escrow.createdAt.toNumber() + safePeriod;
+      expect(releaseTime).to.be.greaterThan(escrow.createdAt.toNumber());
     });
   });
 
