@@ -33,6 +33,16 @@ export class HedgClient {
   }
 
   /**
+   * Derive the bonding curve PDA for a token mint.
+   */
+  findCurvePda(tokenMint: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [CURVE_SEED, tokenMint.toBuffer()],
+      PROGRAM_ID
+    );
+  }
+
+  /**
    * Create an escrow vault with collateral deposit.
    */
   async createEscrow(
@@ -65,6 +75,68 @@ export class HedgClient {
       .accounts({
         deployer,
         escrowVault,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  /**
+   * Initialize a bonding curve for a token.
+   */
+  async initBondingCurve(
+    tokenMint: PublicKey,
+    basePrice: BN,
+    slope: BN
+  ): Promise<TransactionSignature> {
+    const deployer = this.provider.wallet.publicKey;
+    const [bondingCurve] = this.findCurvePda(tokenMint);
+
+    return this.program.methods
+      .initBondingCurve(basePrice, slope)
+      .accounts({
+        deployer,
+        tokenMint,
+        bondingCurve,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  /**
+   * Buy tokens on the bonding curve.
+   */
+  async buyTokens(
+    tokenMint: PublicKey,
+    solAmount: BN
+  ): Promise<TransactionSignature> {
+    const buyer = this.provider.wallet.publicKey;
+    const [bondingCurve] = this.findCurvePda(tokenMint);
+
+    return this.program.methods
+      .buyTokens(solAmount)
+      .accounts({
+        buyer,
+        bondingCurve,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  /**
+   * Sell tokens on the bonding curve.
+   */
+  async sellTokens(
+    tokenMint: PublicKey,
+    tokenAmount: BN
+  ): Promise<TransactionSignature> {
+    const seller = this.provider.wallet.publicKey;
+    const [bondingCurve] = this.findCurvePda(tokenMint);
+
+    return this.program.methods
+      .sellTokens(tokenAmount)
+      .accounts({
+        seller,
+        bondingCurve,
         systemProgram: SystemProgram.programId,
       })
       .rpc();
