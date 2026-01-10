@@ -1,3 +1,8 @@
+/**
+ * Protocol constants matching on-chain values.
+ * Keep in sync with contracts/programs/hedg/src/constants.rs
+ */
+
 import { PublicKey } from "@solana/web3.js";
 
 export const PROGRAM_ID = new PublicKey(
