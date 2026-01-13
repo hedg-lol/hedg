@@ -22,6 +22,8 @@ export class HedgClient {
     this.program = new Program(idl, provider);
   }
 
+  // ── PDA Derivation ──────────────────────────────────────────────────────
+
   /**
    * Derive the escrow vault PDA for a deployer and token mint.
    */
@@ -41,6 +43,18 @@ export class HedgClient {
       PROGRAM_ID
     );
   }
+
+  /**
+   * Derive the buyer record PDA for a buyer and token mint.
+   */
+  findRecordPda(buyer: PublicKey, tokenMint: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [RECORD_SEED, buyer.toBuffer(), tokenMint.toBuffer()],
+      PROGRAM_ID
+    );
+  }
+
+  // ── Escrow Instructions ─────────────────────────────────────────────────
 
   /**
    * Create an escrow vault with collateral deposit.
@@ -80,6 +94,8 @@ export class HedgClient {
       .rpc();
   }
 
+  // ── Bonding Curve Instructions ──────────────────────────────────────────
+
   /**
    * Initialize a bonding curve for a token.
    */
@@ -104,6 +120,7 @@ export class HedgClient {
 
   /**
    * Buy tokens on the bonding curve.
+   * The sol_amount includes the trade fee (1%), which is deducted on-chain.
    */
   async buyTokens(
     tokenMint: PublicKey,
@@ -140,5 +157,79 @@ export class HedgClient {
         systemProgram: SystemProgram.programId,
       })
       .rpc();
+  }
+
+  // ── Refund Instructions ─────────────────────────────────────────────────
+
+  /**
+   * Record a buyer's purchase for refund eligibility.
+   */
+  async recordBuyer(
+    tokenMint: PublicKey,
+    amount: BN,
+    price: BN
+  ): Promise<TransactionSignature> {
+    const buyer = this.provider.wallet.publicKey;
+    const [buyerRecord] = this.findRecordPda(buyer, tokenMint);
+
+    return this.program.methods
+      .recordBuyer(amount, price)
+      .accounts({
+        buyer,
+        tokenMint,
+        buyerRecord,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  /**
+   * Process a refund for a buyer from a rugged escrow.
+   */
+  async processRefund(
+    buyer: PublicKey,
+    deployer: PublicKey,
+    tokenMint: PublicKey
+  ): Promise<TransactionSignature> {
+    const authority = this.provider.wallet.publicKey;
+    const [escrowVault] = this.findEscrowPda(deployer, tokenMint);
+    const [buyerRecord] = this.findRecordPda(buyer, tokenMint);
+
+    return this.program.methods
+      .processRefund()
+      .accounts({
+        authority,
+        buyer,
+        escrowVault,
+        buyerRecord,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  // ── Account Fetchers ────────────────────────────────────────────────────
+
+  /**
+   * Fetch an escrow vault account.
+   */
+  async fetchEscrow(deployer: PublicKey, tokenMint: PublicKey) {
+    const [escrowVault] = this.findEscrowPda(deployer, tokenMint);
+    return (this.program.account as any).escrowVault.fetch(escrowVault);
+  }
+
+  /**
+   * Fetch a bonding curve account.
+   */
+  async fetchBondingCurve(tokenMint: PublicKey) {
+    const [bondingCurve] = this.findCurvePda(tokenMint);
+    return (this.program.account as any).bondingCurve.fetch(bondingCurve);
+  }
+
+  /**
+   * Fetch a buyer record account.
+   */
+  async fetchBuyerRecord(buyer: PublicKey, tokenMint: PublicKey) {
+    const [buyerRecord] = this.findRecordPda(buyer, tokenMint);
+    return (this.program.account as any).buyerRecord.fetch(buyerRecord);
   }
 }
