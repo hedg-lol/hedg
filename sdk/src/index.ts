@@ -1,11 +1,3 @@
-/**
- * HEDG Protocol SDK
- *
- * TypeScript client for the HEDG on-chain program.
- * Supports escrow management, bonding curve trading,
- * and refund claim operations.
- */
-
 export { HedgClient } from "./client";
 export type {
   EscrowVault,
