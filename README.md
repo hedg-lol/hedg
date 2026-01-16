@@ -57,3 +57,7 @@ Under active development. See the [CHANGELOG](CHANGELOG.md) for the latest updat
 ## License
 
 [MIT](LICENSE)
+
+## Architecture
+
+See `docs/` for detailed design documents covering escrow, bonding curves, and refund mechanics.
