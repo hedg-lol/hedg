@@ -1,5 +1,5 @@
 name: CI
-# Dependency caching enabled for faster builds
+# Full pipeline: contracts + SDK build + tests
 
 on:
   push:
