@@ -1,5 +1,6 @@
 name: CI
-# Full pipeline: contracts + SDK build + tests
+
+# Cancel in-progress runs for the same branch
 
 on:
   push:
