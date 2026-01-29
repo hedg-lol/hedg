@@ -1,6 +1,5 @@
 name: CI
-
-# Cancel in-progress runs for the same branch
+# Solana v1.17.x pinned for reproducibility
 
 on:
   push:
