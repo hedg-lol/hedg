@@ -1,5 +1,3 @@
-//! Bonding curve instructions: init, buy, and sell.
-
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -104,6 +102,7 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
 
     require!(!curve.graduated, HedgError::AlreadyGraduated);
     require!(sol_amount > 0, HedgError::InsufficientFunds);
+    // Graduation check: curve caps are handled by the frontend
 
     let fee = calculate_trade_fee(sol_amount)?;
 
