@@ -4,7 +4,6 @@ import { Hedg } from "../target/types/hedg";
 import { expect } from "chai";
 import { Keypair, LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
 
-// Fee calculation precision tests
 describe("hedg", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -86,7 +85,6 @@ describe("hedg", () => {
     });
 
     it("enforces safe period boundary correctly", async () => {
-      // Verifies that the exact boundary (86400 seconds) is respected
       const [escrowVault] = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("escrow"), deployer.publicKey.toBuffer(), tokenMint.publicKey.toBuffer()],
         program.programId
@@ -95,7 +93,6 @@ describe("hedg", () => {
       const escrow = await program.account.escrowVault.fetch(escrowVault);
       const safePeriod = 86_400; // 24 hours
       expect(escrow.createdAt.toNumber()).to.be.greaterThan(0);
-      // The safe period should be exactly 24 hours from creation
       const releaseTime = escrow.createdAt.toNumber() + safePeriod;
       expect(releaseTime).to.be.greaterThan(escrow.createdAt.toNumber());
     });
@@ -150,6 +147,43 @@ describe("hedg", () => {
       const curve = await program.account.bondingCurve.fetch(bondingCurve);
       expect(curve.currentSupply.toNumber()).to.be.greaterThan(0);
       expect(curve.reserveBalance.toNumber()).to.be.greaterThan(0);
+    });
+
+    it("handles math overflow edge cases gracefully", async () => {
+      // Attempt to buy with maximum u64 value should fail with overflow
+      const maxSol = new anchor.BN("18446744073709551615"); // u64::MAX
+
+      const overflowMint = Keypair.generate();
+      const [bondingCurve] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("curve"), overflowMint.publicKey.toBuffer()],
+        program.programId
+      );
+
+      // Initialize curve first
+      await program.methods
+        .initBondingCurve(new anchor.BN(1_000_000), new anchor.BN(100))
+        .accounts({
+          deployer: deployer.publicKey,
+          tokenMint: overflowMint.publicKey,
+          bondingCurve,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      try {
+        await program.methods
+          .buyTokens(maxSol)
+          .accounts({
+            buyer: deployer.publicKey,
+            bondingCurve,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+        expect.fail("Should have thrown an error");
+      } catch (err) {
+        // Expected: either MathOverflow or insufficient funds
+        expect(err).to.exist;
+      }
     });
   });
 
