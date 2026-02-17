@@ -1,8 +1,3 @@
-//! Protocol constants and configuration values.
-//!
-//! Trade fee is split 50/50 between deployer and treasury.
-//! Protocol fee is a flat 0.5% on all trades.
-
 pub const MIN_COLLATERAL: u64 = 1_000_000_000;
 pub const SAFE_PERIOD: i64 = 86_400;
 pub const PROTOCOL_FEE_BPS: u64 = 50;
