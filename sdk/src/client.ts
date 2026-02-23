@@ -1,8 +1,3 @@
-/**
- * HEDG Protocol client.
- * High-level interface for interacting with the on-chain program.
- */
-
 import { Program, AnchorProvider, BN, Idl } from "@coral-xyz/anchor";
 import {
   Connection,
@@ -125,7 +120,7 @@ export class HedgClient {
 
   /**
    * Buy tokens on the bonding curve.
-   * The sol_amount includes the trade fee (1%), which is deducted on-chain.
+   * The solAmount is in lamports. The trade fee (1%) is deducted on-chain.
    */
   async buyTokens(
     tokenMint: PublicKey,
