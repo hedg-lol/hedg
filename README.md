@@ -103,8 +103,6 @@ The score is rule-based and updated in real-time as on-chain events occur.
 
 ## Getting Started
 
-<!-- SDK and configuration sections to follow -->
-
 ### Prerequisites
 
 - Rust 1.75+ and Cargo
@@ -133,7 +131,6 @@ npm run build
 ```
 
 ### SDK Usage
-
 
 ```typescript
 import { HedgClient } from "@hedg/sdk";
@@ -168,7 +165,6 @@ console.log("Collateral:", escrow.collateralAmount.toString());
 
 ## Configuration
 
-
 | Variable | Description | Default |
 |---|---|---|
 | `PROGRAM_ID` | On-chain program address | `CcyByKGzRDK17icyNGAgdUN4q7WzbL1BPi4BNzqytyMP` |
@@ -186,7 +182,6 @@ Program ID: CcyByKGzRDK17icyNGAgdUN4q7WzbL1BPi4BNzqytyMP
 ```
 
 ## Security
-
 
 This software is unaudited and provided as-is. It is currently deployed on devnet for testing purposes only. Do not use with real funds on mainnet. If you discover a vulnerability, please report it privately to the team.
 
