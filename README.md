@@ -183,7 +183,7 @@ Program ID: CcyByKGzRDK17icyNGAgdUN4q7WzbL1BPi4BNzqytyMP
 
 ## Security
 
-This software is unaudited and provided as-is. It is currently deployed on devnet for testing purposes only. Do not use with real funds on mainnet. If you discover a vulnerability, please report it privately to the team.
+This software is unaudited and provided as-is for testing purposes. It is currently deployed on devnet for testing purposes only. Do not use with real funds on mainnet. If you discover a vulnerability, please report it privately to the team.
 
 ## License
 
