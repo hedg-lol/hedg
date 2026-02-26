@@ -43,6 +43,8 @@ pub struct ReleaseEscrow<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Create a new escrow vault. The PDA bump is stored in the account
+/// for efficient re-derivation in subsequent instructions.
 pub fn create_escrow(ctx: Context<CreateEscrow>, collateral_amount: u64) -> Result<()> {
     require!(
         collateral_amount >= MIN_COLLATERAL,
