@@ -5,9 +5,9 @@
 
 use anchor_lang::prelude::*;
 
-use crate::state::{BuyerRecord, EscrowVault};
 use crate::constants::*;
 use crate::errors::HedgError;
+use crate::state::{BuyerRecord, EscrowVault};
 
 #[derive(Accounts)]
 pub struct RecordBuyer<'info> {
@@ -80,23 +80,30 @@ pub fn record_buyer(ctx: Context<RecordBuyer>, amount: u64, price: u64) -> Resul
         .checked_div(1_000_000_000)
         .ok_or(HedgError::MathOverflow)?;
 
-    record.total_bought = record.total_bought
+    record.total_bought = record
+        .total_bought
         .checked_add(amount)
         .ok_or(HedgError::MathOverflow)?;
-    record.total_sol_spent = record.total_sol_spent
+    record.total_sol_spent = record
+        .total_sol_spent
         .checked_add(sol_spent)
         .ok_or(HedgError::MathOverflow)?;
 
     // Recalculate weighted average price
     if record.total_bought > 0 {
-        record.avg_price = record.total_sol_spent
+        record.avg_price = record
+            .total_sol_spent
             .checked_mul(1_000_000_000)
             .ok_or(HedgError::MathOverflow)?
             .checked_div(record.total_bought)
             .ok_or(HedgError::MathOverflow)?;
     }
 
-    msg!("Buyer record updated: {} tokens, {} SOL spent", record.total_bought, record.total_sol_spent);
+    msg!(
+        "Buyer record updated: {} tokens, {} SOL spent",
+        record.total_bought,
+        record.total_sol_spent
+    );
     Ok(())
 }
 
@@ -108,8 +115,7 @@ pub fn process_refund(ctx: Context<ProcessRefund>) -> Result<()> {
     require!(!record.refund_claimed, HedgError::RefundAlreadyProcessed);
 
     // Pro-rata refund: buyer gets share of collateral proportional to SOL spent
-    let refund_amount = record.total_sol_spent
-        .min(escrow.collateral_amount);
+    let refund_amount = record.total_sol_spent.min(escrow.collateral_amount);
 
     require!(refund_amount > 0, HedgError::NoBuyerRecord);
 
@@ -120,7 +126,8 @@ pub fn process_refund(ctx: Context<ProcessRefund>) -> Result<()> {
     **escrow_info.try_borrow_mut_lamports()? -= refund_amount;
     **buyer_info.try_borrow_mut_lamports()? += refund_amount;
 
-    escrow.collateral_amount = escrow.collateral_amount
+    escrow.collateral_amount = escrow
+        .collateral_amount
         .checked_sub(refund_amount)
         .ok_or(HedgError::MathOverflow)?;
     record.refund_claimed = true;

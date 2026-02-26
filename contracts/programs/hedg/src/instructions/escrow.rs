@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-use crate::state::EscrowVault;
 use crate::constants::*;
 use crate::errors::HedgError;
+use crate::state::EscrowVault;
 
 #[derive(Accounts)]
 pub struct CreateEscrow<'info> {
@@ -82,7 +82,9 @@ pub fn release_escrow(ctx: Context<ReleaseEscrow>) -> Result<()> {
     require!(!escrow.released, HedgError::EscrowAlreadyReleased);
 
     let now = Clock::get()?.unix_timestamp;
-    let elapsed = now.checked_sub(escrow.created_at).ok_or(HedgError::MathOverflow)?;
+    let elapsed = now
+        .checked_sub(escrow.created_at)
+        .ok_or(HedgError::MathOverflow)?;
     // Ensure elapsed time is non-negative (clock can sometimes drift)
     require!(elapsed >= SAFE_PERIOD, HedgError::SafePeriodActive);
 

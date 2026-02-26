@@ -5,10 +5,10 @@
 
 use anchor_lang::prelude::*;
 
-pub mod state;
-pub mod instructions;
-pub mod errors;
 pub mod constants;
+pub mod errors;
+pub mod instructions;
+pub mod state;
 
 use instructions::*;
 
@@ -26,7 +26,11 @@ pub mod hedg {
         instructions::escrow::release_escrow(ctx)
     }
 
-    pub fn init_bonding_curve(ctx: Context<InitBondingCurve>, base_price: u64, slope: u64) -> Result<()> {
+    pub fn init_bonding_curve(
+        ctx: Context<InitBondingCurve>,
+        base_price: u64,
+        slope: u64,
+    ) -> Result<()> {
         instructions::bonding_curve::init_bonding_curve(ctx, base_price, slope)
     }
 

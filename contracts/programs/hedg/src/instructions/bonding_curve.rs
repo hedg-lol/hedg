@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-use crate::state::BondingCurve;
 use crate::constants::*;
 use crate::errors::HedgError;
+use crate::state::BondingCurve;
 
 #[derive(Accounts)]
 pub struct InitBondingCurve<'info> {
@@ -70,7 +70,11 @@ pub fn init_bonding_curve(
     curve.deployer = ctx.accounts.deployer.key();
     curve.bump = ctx.bumps.bonding_curve;
 
-    msg!("Bonding curve initialized: base_price={}, slope={}", base_price, slope);
+    msg!(
+        "Bonding curve initialized: base_price={}, slope={}",
+        base_price,
+        slope
+    );
     Ok(())
 }
 
@@ -81,7 +85,9 @@ pub fn init_bonding_curve(
 /// large-supply scenarios.
 fn calculate_price(base_price: u64, slope: u64, supply: u64) -> Result<u64> {
     let price_increase = slope.checked_mul(supply).ok_or(HedgError::MathOverflow)?;
-    let price = base_price.checked_add(price_increase).ok_or(HedgError::MathOverflow)?;
+    let price = base_price
+        .checked_add(price_increase)
+        .ok_or(HedgError::MathOverflow)?;
     Ok(price)
 }
 
@@ -107,9 +113,7 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
 
     let fee = calculate_trade_fee(sol_amount)?;
 
-    let net_amount = sol_amount
-        .checked_sub(fee)
-        .ok_or(HedgError::MathOverflow)?;
+    let net_amount = sol_amount.checked_sub(fee).ok_or(HedgError::MathOverflow)?;
 
     let current_price = calculate_price(curve.base_price, curve.slope, curve.current_supply)?;
     require!(current_price > 0, HedgError::InvalidPrice);
@@ -132,14 +136,21 @@ pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
         sol_amount,
     )?;
 
-    curve.current_supply = curve.current_supply
+    curve.current_supply = curve
+        .current_supply
         .checked_add(tokens_to_mint)
         .ok_or(HedgError::MathOverflow)?;
-    curve.reserve_balance = curve.reserve_balance
+    curve.reserve_balance = curve
+        .reserve_balance
         .checked_add(net_amount)
         .ok_or(HedgError::MathOverflow)?;
 
-    msg!("Bought {} tokens for {} lamports (fee: {})", tokens_to_mint, sol_amount, fee);
+    msg!(
+        "Bought {} tokens for {} lamports (fee: {})",
+        tokens_to_mint,
+        sol_amount,
+        fee
+    );
     Ok(())
 }
 
@@ -164,9 +175,7 @@ pub fn sell_tokens(ctx: Context<SellTokens>, token_amount: u64) -> Result<()> {
 
     let fee = calculate_trade_fee(gross_sol)?;
 
-    let net_sol = gross_sol
-        .checked_sub(fee)
-        .ok_or(HedgError::MathOverflow)?;
+    let net_sol = gross_sol.checked_sub(fee).ok_or(HedgError::MathOverflow)?;
 
     require!(
         curve.reserve_balance >= net_sol,
@@ -180,13 +189,20 @@ pub fn sell_tokens(ctx: Context<SellTokens>, token_amount: u64) -> Result<()> {
     **curve_info.try_borrow_mut_lamports()? -= net_sol;
     **seller_info.try_borrow_mut_lamports()? += net_sol;
 
-    curve.current_supply = curve.current_supply
+    curve.current_supply = curve
+        .current_supply
         .checked_sub(token_amount)
         .ok_or(HedgError::MathOverflow)?;
-    curve.reserve_balance = curve.reserve_balance
+    curve.reserve_balance = curve
+        .reserve_balance
         .checked_sub(net_sol)
         .ok_or(HedgError::MathOverflow)?;
 
-    msg!("Sold {} tokens for {} lamports (fee: {})", token_amount, net_sol, fee);
+    msg!(
+        "Sold {} tokens for {} lamports (fee: {})",
+        token_amount,
+        net_sol,
+        fee
+    );
     Ok(())
 }
