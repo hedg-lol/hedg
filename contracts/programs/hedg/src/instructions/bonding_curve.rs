@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-
 use crate::state::BondingCurve;
 use crate::constants::*;
 use crate::errors::HedgError;
@@ -87,6 +86,7 @@ fn calculate_price(base_price: u64, slope: u64, supply: u64) -> Result<u64> {
 }
 
 /// Calculate trade fee from gross amount.
+/// This helper is used by both buy_tokens and sell_tokens.
 ///
 /// fee = amount * TRADE_FEE_BPS / 10_000
 fn calculate_trade_fee(amount: u64) -> Result<u64> {
