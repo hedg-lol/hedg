@@ -173,7 +173,7 @@ console.log("Collateral:", escrow.collateralAmount.toString());
 | `CURVE_SEED` | PDA seed for bonding curve accounts | `"curve"` |
 | `RECORD_SEED` | PDA seed for buyer record accounts | `"record"` |
 
-
+## Deployment
 
 The program is currently deployed on Solana Devnet:
 
@@ -187,4 +187,4 @@ This software is unaudited and provided as-is. It is currently deployed on devne
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) -- Copyright 2025-2026 HEDG Protocol
