@@ -1,0 +1,5 @@
+[build]
+sbf-sdk = "~/.local/share/solana/install/active_release"
+
+[target.'cfg(target_arch = "bpf")']
+rustflags = ["-C", "lto=fat"]

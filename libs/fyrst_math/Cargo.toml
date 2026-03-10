@@ -1,0 +1,10 @@
+[package]
+name = "fyrst-math"
+version = "0.1.0"
+edition = "2021"
+description = "Mathematical primitives for the FYRST bonding curve"
+license = "MIT"
+
+[dependencies]
+
+[dev-dependencies]

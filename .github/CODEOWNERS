@@ -1,0 +1,11 @@
+# Global owners
+* @fyrst-fun
+
+# Contract code requires review
+contracts/ @fyrst-fun
+
+# SDK code
+sdk/ @fyrst-fun
+
+# CI/CD
+.github/ @fyrst-fun
